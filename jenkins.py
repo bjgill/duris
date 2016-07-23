@@ -31,7 +31,7 @@ branch_config = master_config.replace("origin/master", args.branch)
 
 job_create_url = config['jenkins_url'] + "/createItem"
 
-auth = ('bgill', '53b6b10ca029dcb39645154b543b667e')
+auth = (config['username'], config['api_key'])
 
 params = {'name': args.branch}
 
