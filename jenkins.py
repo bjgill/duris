@@ -1,48 +1,66 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import requests
-import pprint
-import json
 import argparse
 from config import config
-from pkg_resources import resource_string
 
 parser = argparse.ArgumentParser()
 parser.add_argument("branch")
+parser.add_argument("email", default=None)
+parser.add_argument("username")
+parser.add_argument("password")
 args = parser.parse_args()
 
 
 def get_master_config():
     """
-    Gets the config.xml file for the Jenkins build job for origin/master."""
+    Gets the config.xml file for the Jenkins build job for origin/master.
+    """
+    job_get_url = "{}/job/{}/config.xml".format(config['jenkins_url'],
+                                                config['master_job'])
 
-    job_get_url = config['jenkins_url'] + "/job/" + config['master_job'] + "/config.xml"
-
-    auth = (config['username'], config['api_key'])
+    auth = (args.username, args.password)
 
     headers = {'Content-Type': 'application/xml'}
 
     response = requests.get(job_get_url, auth=auth, headers=headers)
 
-    return(response.text)
+    return response.text
 
 
-master_config = get_master_config()
+def main():
+    master_config = get_master_config()
 
-branch_config = master_config.replace("origin/master", args.branch)
+    branch_config = master_config.replace("origin/master", args.branch)
 
-job_create_url = config['jenkins_url'] + "/createItem"
+    if args.email is not None:
+        branch_config = branch_config.replace(
+                            "<recipients></recipients>",
+                            "<recipients>{}</recipients>".format(args.email))
 
-auth = (config['username'], config['api_key'])
+    print(branch_config)
 
-params = {'name': args.branch}
+    job_create_url = config['jenkins_url'] + "/createItem"
 
-headers = {'Content-Type': 'application/xml'}
+    auth = (args.username, args.password)
 
-response = requests.post(job_create_url,
-                         auth=auth,
-                         headers=headers,
-                         params=params,
-                         data=branch_config)
+    params = {'name': args.branch}
 
-print(response.status_code)
-print(response.text)
+    headers = {'Content-Type': 'application/xml'}
+
+    response = requests.post(job_create_url,
+                             auth=auth,
+                             headers=headers,
+                             params=params,
+                             data=branch_config)
+
+    print(response.status_code)
+    print(response.text)
+
+if __name__ == "__main__":
+    main()
